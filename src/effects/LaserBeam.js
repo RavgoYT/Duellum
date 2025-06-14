@@ -56,11 +56,13 @@ export class LaserBeam {
     
     if (dist < targetPlayer.size / 2 + this.width / 2) {
       targetPlayer.isDead = true;
+      let beforeDeathCoords = { x: targetPlayer.x, y: targetPlayer.y };
+      console.log(this.beforeDeathCoords)
       targetPlayer.x = undefined;
       targetPlayer.y = undefined;
       this.hitSomething = true;
       
-      this.createDeathParticles(targetPlayer);
+      this.createDeathParticles(targetPlayer, beforeDeathCoords);
       
       this.game.gameState = "gameOverPending";
       this.game.gameOverDelay = millis();
@@ -100,13 +102,15 @@ export class LaserBeam {
     return sqrt(dx * dx + dy * dy);
   }
 
-  createDeathParticles(player) {
+  createDeathParticles(player, beforeDeathCoords) {
+    console.log("Creating death particles for player", player);
+    console.log("Before death coordinates:", beforeDeathCoords);
     let numParticles = random(40, 50);
     
     for (let i = 0; i < numParticles; i++) {
       let particle = {
-        x: player.x + random(-player.size/2, player.size/2),
-        y: player.y + random(-player.size/2, player.size/2),
+        x: beforeDeathCoords.x + random(-player.size/2, player.size/2),
+        y: beforeDeathCoords.y + random(-player.size/2, player.size/2),
         vx: random(-18, 18),
         vy: random(-18, 18),
         size: random(3, 8),

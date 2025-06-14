@@ -22,7 +22,20 @@ export class Game {
   }
 
   setup() {
-    createCanvas(800, 600);
+    // Responsive canvas: 90% of window size, but not exceeding 1200x900
+    const resizeCanvasToWindow = () => {
+      const canvasWidth = min(windowWidth * 0.9, 1200);
+      const canvasHeight = min(windowHeight * 0.9, 900);
+      resizeCanvas(canvasWidth, canvasHeight);
+    };
+
+    // Initial canvas creation
+    const canvasWidth = min(windowWidth * 0.9, 1200);
+    const canvasHeight = min(windowHeight * 0.9, 900);
+    createCanvas(canvasWidth, canvasHeight);
+
+    // Listen for window resize to adjust canvas
+    window.addEventListener('resize', resizeCanvasToWindow);
     this.players[1] = new Square((width / 2) + random(-300, 300), height - 50, color(random(180, 255), 150 + random(-105, 105), 150 + random(-105, 105)), 0, 1);
     this.players[0] = new Square((width / 2) + random(-300, 300), 50, color(150 + random(-105, 105), random(180, 255), 150 + random(-105, 105)), 1, 0);
     console.log("Game setup: players initialized", this.players);

@@ -2,6 +2,7 @@ import { Constants } from '../game/Constants.js';
 import { Bullet } from './Bullet.js';
 import { ChargingEffect } from '../effects/ChargingEffect.js';
 import { LaserBeam } from '../effects/LaserBeam.js';
+import { DeathParticle } from '../effects/DeathParticle.js';
 
 export class Square {
   constructor(x, y, col, entityType, me) {
