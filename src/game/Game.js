@@ -5,6 +5,7 @@ import { Bullet } from '../entities/Bullet.js';
 import { ChargingEffect } from '../effects/ChargingEffect.js';
 import { LaserBeam } from '../effects/LaserBeam.js';
 import { DeathParticle } from '../effects/DeathParticle.js';
+import { Levels } from './Levels.js';
 
 export class Game {
   constructor() {
@@ -15,37 +16,74 @@ export class Game {
     this.chargingEffects = [];
     this.laserBeams = [];
     this.screenShake = new ScreenShake();
-    this.gameState = "playing";
+    this.gameState = "countdown"; // Start with countdown
     this.deathParticles = [];
     this.gameOverWinner = "";
     this.gameOverDelay = 0;
+    this.levels = new Levels();
+    this.countdownTimer = 0;
+    this.countdownValue = 3;
+    this.countdownDuration = 400; // 0.4 seconds per countdown number
+    this.startAnimationTimer = 0;
+    this.startAnimationDuration = 0; // Duration for "START!" display
   }
 
   setup() {
-    // Responsive canvas: 90% of window size, but not exceeding 1200x900
     const resizeCanvasToWindow = () => {
       const canvasWidth = min(windowWidth * 0.9, 1200);
       const canvasHeight = min(windowHeight * 0.9, 900);
       resizeCanvas(canvasWidth, canvasHeight);
     };
 
-    // Initial canvas creation
     const canvasWidth = min(windowWidth * 0.9, 1200);
     const canvasHeight = min(windowHeight * 0.9, 900);
     createCanvas(canvasWidth, canvasHeight);
 
-    // Listen for window resize to adjust canvas
     window.addEventListener('resize', resizeCanvasToWindow);
     this.players[1] = new Square((width / 2) + random(-300, 300), height - 50, color(random(180, 255), 150 + random(-105, 105), 150 + random(-105, 105)), 0, 1);
     this.players[0] = new Square((width / 2) + random(-300, 300), 50, color(150 + random(-105, 105), random(180, 255), 150 + random(-105, 105)), 1, 0);
     console.log("Game setup: players initialized", this.players);
+    this.countdownTimer = millis(); // Start countdown timer
   }
 
   draw() {
     background(0);
 
+    if (this.gameState === "countdown") {
+      let elapsed = millis() - this.countdownTimer;
+      let currentCount = Math.floor(3 - elapsed / this.countdownDuration);
+      let fadeProgress = (elapsed % this.countdownDuration) / this.countdownDuration;
+
+      if (currentCount < 0) {
+        if (this.startAnimationTimer === 0) {
+          this.startAnimationTimer = millis();
+        }
+        let startElapsed = millis() - this.startAnimationTimer;
+        if (startElapsed < this.startAnimationDuration) {
+          // Display "START!"
+          fill(255, 255, 255, map(startElapsed, 0, this.startAnimationDuration, 255, 0));
+          textAlign(CENTER, CENTER);
+          textSize(64);
+          textStyle(BOLD);
+          text("START!", width / 2, height / 2);
+        } else {
+          // Transition to playing state
+          this.gameState = "playing";
+          this.countdownTimer = 0;
+          this.startAnimationTimer = 0;
+        }
+      } else {
+        // Display countdown number
+        fill(255, 255, 255, map(fadeProgress, 0, 1, 255, 50));
+        textAlign(CENTER, CENTER);
+        textSize(96);
+        textStyle(BOLD);
+        text(currentCount + 1, width / 2, height / 2);
+      }
+      return; // Don't draw game elements during countdown
+    }
+
     if (this.gameState === "playing" || this.gameState === "gameOverPending") {
-      // Apply screen shake BEFORE drawing anything
       if (this.screenShake.timer < this.screenShake.duration) {
         push();
         translate(random(-this.screenShake.intensity, this.screenShake.intensity), 
@@ -53,9 +91,8 @@ export class Game {
         this.screenShake.timer += 16;
       }
 
-      // Only update and display players if they're not dead
       if (!this.players[0].isDead) {
-        this.players[0].aiMove(this.players, this.p1Bullets, this.p0Bullets, this.chargingEffects);
+        this.players[0].aiMove(this.players, this.p1Bullets, this.p0Bullets, this.chargingEffects, this.levels.getReactionTimeScale());
         this.players[0].update(this);
         this.players[0].display();
       }
@@ -65,32 +102,29 @@ export class Game {
         this.players[1].display();
       }
 
-        if (
-    keyIsDown(79) &&
-    !this.players[1].isCharging &&
-    (millis() - this.players[1].lastAttackTime) > Constants.attackCooldown
-  ) {
-    console.log('Light Attack 1');
-    this.players[1].lightAttack(this.players, this.p0Bullets, this.p1Bullets);
-    this.players[1].lightAttack(this.players, this.p1Bullets, this.p0Bullets);
-    this.players[1].isLightAttacking = true;
-    this.players[1].lastAttackTime = millis();
-  }
+      if (
+        keyIsDown(79) &&
+        !this.players[1].isCharging &&
+        (millis() - this.players[1].lastAttackTime) > Constants.attackCooldown
+      ) {
+        console.log('Light Attack 1');
+        this.players[1].lightAttack(this.players, this.p0Bullets, this.p1Bullets);
+        this.players[1].lightAttack(this.players, this.p1Bullets, this.p0Bullets);
+        this.players[1].isLightAttacking = true;
+        this.players[1].lastAttackTime = millis();
+      }
 
-  // AND REMOVE THIS BLOCK
-  // Hold-to-fire for Player 0 ('x', keyCode 88)
-  if (
-    keyIsDown(88) &&
-    !this.players[0].isCharging &&
-    (millis() - this.players[0].lastAttackTime) > Constants.attackCooldown
-  ) {
-    console.log('Light Attack 3');
-    this.players[0].lightAttack(this.players, this.p1Bullets, this.p0Bullets);
-    this.players[0].isLightAttacking = true;
-    this.players[0].lastAttackTime = millis();
-  }
+      if (
+        keyIsDown(88) &&
+        !this.players[0].isCharging &&
+        (millis() - this.players[0].lastAttackTime) > Constants.attackCooldown
+      ) {
+        console.log('Light Attack 3');
+        this.players[0].lightAttack(this.players, this.p1Bullets, this.p0Bullets);
+        this.players[0].isLightAttacking = true;
+        this.players[0].lastAttackTime = millis();
+      }
 
-      // Update and display charging effects
       for (let i = this.chargingEffects.length - 1; i >= 0; i--) {
         this.chargingEffects[i].update();
         this.chargingEffects[i].display();
@@ -99,7 +133,6 @@ export class Game {
         }
       }
 
-      // Update and display laser beams
       for (let i = this.laserBeams.length - 1; i >= 0; i--) {
         this.laserBeams[i].update();
         this.laserBeams[i].display();
@@ -108,7 +141,6 @@ export class Game {
         }
       }
 
-      // Update and display p1 bullets
       for (let i = this.p1Bullets.length - 1; i >= 0; i--) {
         this.p1Bullets[i].update(this.players, this.p0Bullets, this.p1Bullets);
         this.p1Bullets[i].display();
@@ -120,7 +152,6 @@ export class Game {
         }
       }
 
-      // Update and display p0 bullets
       for (let i = this.p0Bullets.length - 1; i >= 0; i--) {                                                                                                                                                                                   
         this.p0Bullets[i].update(this.players, this.p0Bullets, this.p1Bullets);
         this.p0Bullets[i].display();
@@ -132,13 +163,11 @@ export class Game {
         }
       }
 
-      // Close the screen shake transformation
       if (this.screenShake.timer < this.screenShake.duration) {
         pop();
       }
     }
     
-    // Update and display death particles
     for (let i = this.deathParticles.length - 1; i >= 0; i--) {
       let particle = this.deathParticles[i];
       particle.x += particle.vx;
@@ -148,19 +177,16 @@ export class Game {
       particle.rotation += particle.rotationSpeed;
       particle.life -= particle.decay;
       
-      // Bounce off ground
       if (particle.y > height - particle.size/2) {
         particle.y = height - particle.size/2;
         particle.vy *= -0.6;
       }
       
-      // Bounce off walls
       if (particle.x < particle.size/2 || particle.x > width - particle.size/2) {
         particle.vx *= -0.6;
         particle.x = constrain(particle.x, particle.size/2, width - particle.size/2);
       }
       
-      // Display particle
       push();
       translate(particle.x, particle.y);
       rotate(particle.rotation);
@@ -175,44 +201,53 @@ export class Game {
       
       pop();
       
-      // Remove dead particles
       if (particle.life <= 0) {
         this.deathParticles.splice(i, 1);
       }
     }
     
-    // Handle game over delay
     if (this.gameState === "gameOverPending" && millis() - this.gameOverDelay >= Constants.gameOverDelayDuration) {
-      this.gameState = "gameOver";
+      if (this.gameOverWinner === "You") {
+        this.levels.incrementLevel();
+        this.resetGameState();
+        this.gameState = "countdown"; // Restart countdown for next level
+        this.countdownTimer = millis();
+      } else {
+        this.gameState = "gameOver";
+      }
     }
     
-    // Draw game over screen
     if (this.gameState === "gameOver") {
-      // Semi-transparent overlay
       fill(0, 0, 0, 180);
       rect(0, 0, width, height);
       
-      // Game Over text
       fill(255);
       textAlign(CENTER, CENTER);
       textSize(48);
       text("GAME OVER", width/2, height/2 - 40);
       
-      // Winner text colored as the winning player's color
       let winnerColor = this.players[this.gameOverWinner === "You" ? 1 : 0]?.col || color(255);
       fill(winnerColor);
       textSize(24);
-    let winText = this.gameOverWinner === "AI" ? "Wins!" : "Win!";
-    text(this.gameOverWinner + " " + winText, width/2, height/2);
+      let winText = this.gameOverWinner === "AI" ? "Wins!" : "Win!";
+      text(this.gameOverWinner + " " + winText, width/2, height/2);
       
       fill(255);
       textSize(16);
       text("Press SPACE to restart", width/2, height/2 + 40);
     }
+
+    fill(255);
+    textAlign(RIGHT, BOTTOM);
+    textSize(16);
+    text(`Level: ${this.levels.getCurrentLevel()}`, width - 10, height - 10);
   }
 
   keyPressed() {
-    // Player 0 (AI-controlled, but allow manual override for testing)
+    if (this.gameState === "countdown") {
+      return; // Disable input during countdown
+    }
+
     if (keyCode === UP_ARROW) {
       this.players[0].setDirection(this.players[0].direction.x, -1);
     } else if (keyCode === DOWN_ARROW) {
@@ -233,7 +268,6 @@ export class Game {
       }
     }
 
-    // Player 1
     if (key === 'w' || keyCode === 87) {
       this.players[1].setDirection(this.players[1].direction.x, -1);
     } else if (key === 's' || keyCode === 83) {
@@ -254,14 +288,16 @@ export class Game {
       }
     }
 
-
     if (this.gameState === "gameOver" && (key === ' ' || keyCode === 32)) {
       this.restartGame();
     }
   }
 
   keyReleased() {
-    // Player 0
+    if (this.gameState === "countdown") {
+      return; // Disable input during countdown
+    }
+
     if ((keyCode === UP_ARROW && this.players[0].direction.y === -1) ||
         (keyCode === DOWN_ARROW && this.players[0].direction.y === 1) ||
         (keyCode === LEFT_ARROW && this.players[0].direction.x === -1) ||
@@ -286,7 +322,6 @@ export class Game {
       this.players[0].releaseCharge();
     }
 
-    // Player 1
     if ((key === 'w' && this.players[1].direction.y === -1) ||
         (key === 's' && this.players[1].direction.y === 1) ||
         (key === 'a' && this.players[1].direction.x === -1) ||
@@ -316,16 +351,37 @@ export class Game {
     }
   }
 
-  restartGame() {
-    this.gameState = "playing";
+  resetGameState() {
     this.deathParticles = [];
     this.p1Bullets = [];
     this.p0Bullets = [];
     this.chargingEffects = [];
     this.laserBeams = [];
     this.screenShake = new ScreenShake();
+    this.gameOverWinner = "";
+    this.gameOverDelay = 0;
+    this.gameState = "countdown"; // Start countdown after reset
+    this.countdownTimer = millis();
+    this.startAnimationTimer = 0;
     
-    // Reset players
+    // Respawn players with new positions
+    this.players[1] = new Square((width / 2) + random(-300, 300), height - 50, color(random(180, 255), 150 + random(-105, 105), 150 + random(-105, 105)), 0, 1);
+    this.players[0] = new Square((width / 2) + random(-300, 300), 50, color(150 + random(-105, 105), random(180, 255), 150 + random(-105, 105)), 1, 0);
+  }
+
+  restartGame() {
+    this.gameState = "countdown"; // Start countdown for restart
+    this.levels.reset();
+    this.deathParticles = [];
+    this.p1Bullets = [];
+    this.p0Bullets = [];
+    this.chargingEffects = [];
+    this.laserBeams = [];
+    this.screenShake = new ScreenShake();
+    this.gameOverWinner = "";
+    this.countdownTimer = millis();
+    this.startAnimationTimer = 0;
+    
     this.players[1] = new Square((width / 2) + random(-300, 300), height - 50, color(random(180, 255), 150 + random(-105, 105), 150 + random(-105, 105)), 0, 1);
     this.players[0] = new Square((width / 2) + random(-300, 300), 50, color(150 + random(-105, 105), random(180, 255), 150 + random(-105, 105)), 1, 0);
   }

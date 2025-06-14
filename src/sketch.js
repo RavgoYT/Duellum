@@ -13,11 +13,9 @@ window.draw = function() {
 };
 
 window.keyPressed = function() {
-  console.log("Key pressed:", key);
   game.keyPressed();
 };
 
 window.keyReleased = function() {
-  console.log("Key released:", key);
   game.keyReleased();
 };

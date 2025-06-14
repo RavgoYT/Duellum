@@ -18,26 +18,26 @@ export class Square {
     this.originalSize = 30;
     this.isStunned = false;
     this.lastAttackTime = 0;
-    this.stunDuration = 400; // in milliseconds
+    this.stunDuration = 400;
     this.stunStartTime = 0;
     this.angle = 0;
     this.speed = Constants.placeholder;
     this.originalSpeed = Constants.placeholder;
-    this.baseSpeed = Constants.placeholder; // Store the base speed
+    this.baseSpeed = Constants.placeholder;
     this.burstFactor = 2.2;
     this.direction = createVector(0, 0);
-    this.deceleration = 0.05; // Adjust as needed
+    this.deceleration = 0.05;
     this.isCharging = false;
-    this.chargeTime = 2000; // in milliseconds
+    this.chargeTime = 2000;
     this.chargeStartTime = 0;
-    this.spinSpeed = 0; // Initialize spin speed
-    this.targetSpinSpeed = 0; // Initialize target spin speed
-    this.spinSpeedMultiplier = 1.4; // Adjust as needed
+    this.spinSpeed = 0;
+    this.targetSpinSpeed = 0;
+    this.spinSpeedMultiplier = 1.4;
     this.burstCountdown = 0;
     this.isChargingLethal = false;
-    this.lethalChargeTime = 600; // 600 milliseconds to charge
+    this.lethalChargeTime = 600;
     this.lethalChargeStartTime = 0;
-    this.aimDirection = 0; // Angle for aiming lethal shot
+    this.aimDirection = 0;
     this.chargingEffect = null;
     this.isDead = false;
   }
@@ -75,53 +75,41 @@ export class Square {
         );
       }
       
-      // Manual aiming with left/right controls only - NO auto-aim
-      let aimSpeed = 0.005; // Adjust this for aiming speed
+      let aimSpeed = 0.005;
       if ((this.me === 0 && (keyIsDown(LEFT_ARROW) || keyIsDown(RIGHT_ARROW))) ||
-          (this.me === 1 && (keyIsDown(65) || keyIsDown(68)))) { // 65 = 'a', 68 = 'd'
+          (this.me === 1 && (keyIsDown(65) || keyIsDown(68)))) {
         if ((this.me === 0 && keyIsDown(LEFT_ARROW)) || (this.me === 1 && keyIsDown(65))) {
-          this.aimDirection -= aimSpeed; // Aim left
+          this.aimDirection -= aimSpeed;
         }
         if ((this.me === 0 && keyIsDown(RIGHT_ARROW)) || (this.me === 1 && keyIsDown(68))) {
-          this.aimDirection += aimSpeed; // Aim right
+          this.aimDirection += aimSpeed;
         }
       }
       
-      // Update charging effect position
       if (this.chargingEffect) {
         this.chargingEffect.x = this.x;
         this.chargingEffect.y = this.y;
       }
       
-      // Can't move while charging lethal
       return;
     }
 
-    // Update spinning based on movement speed
     this.angle += this.calculateSpinSpeed();
 
-    // Update position based on direction and speed
     if (this.burstCountdown > 0) {
-      // Burst acceleration
       let targetSpeed = this.calculateSpeedModifier() + this.burstFactor;
       this.speed = lerp(this.speed, targetSpeed, 0.1);
       this.x += this.direction.x * this.speed;
       this.y += this.direction.y * this.speed;
-
-      // Update target spin speed during burst acceleration
       this.targetSpinSpeed = this.calculateSpinSpeed();
       this.burstCountdown--;
     } else {
-      // Regular movement
-      this.speed = lerp(this.speed, this.baseSpeed, 0.1); // Smoothly return to base speed
+      this.speed = lerp(this.speed, this.baseSpeed, 0.1);
       this.x += this.direction.x * this.speed;
       this.y += this.direction.y * this.speed;
-
-      // Update target spin speed during regular movement
       this.targetSpinSpeed = this.calculateSpinSpeed();
     }
 
-    // Ensure the square stays within the canvas boundaries
     this.x = constrain(this.x, this.size / 2, width - this.size / 2);
     this.y = constrain(this.y, this.size / 2, height - this.size / 2);
   }
@@ -130,19 +118,13 @@ export class Square {
     push();
     translate(this.x, this.y);
     rotate(radians(this.angle));
-
-    // Set the stroke (outline) color to the random color
     stroke(this.col);
     strokeWeight(6);
     noFill();
-
-    // Draw the square with rounded corners
     rectMode(CENTER);
-    rect(0, 0, this.size, this.size, 3); // 3 is the radius for rounded corners
+    rect(0, 0, this.size, this.size, 3);
 
-    // Draw death effect if dead
     if (this.isDead) {
-      // Make the square flash and break apart
       if (frameCount % 4 < 2) {
         stroke(255, 0, 0);
         strokeWeight(8);
@@ -153,7 +135,7 @@ export class Square {
 
   setDirection(xdir, ydir) {
     if (this.direction.x === 0 && this.direction.y === 0) {
-      this.burstCountdown = 7.5; // Adjust as needed
+      this.burstCountdown = 7.5;
     }
     this.direction.set(xdir, ydir);
   }
@@ -168,17 +150,11 @@ export class Square {
     if (this.isChargingLethal) {
       this.isChargingLethal = false;
       this.canMove = true;
-      
-      // Remove charging effect
       if (this.chargingEffect) {
         this.chargingEffect.shouldRemove = true;
         this.chargingEffect = null;
       }
     }
-  }
-
-  performHeavyAttack() {
-    // Implement heavy attack logic
   }
 
   lightAttack(players, p1Bullets, p0Bullets) {
@@ -204,9 +180,9 @@ export class Square {
 
   calculateSpeedModifier() {
     if (this.direction.x !== 0 && this.direction.y !== 0) {
-      return this.baseSpeed * 1.9; // Diagonal movement
+      return this.baseSpeed * 1.9;
     } else if (this.direction.x !== 0 && this.direction.y === 0) {
-      return this.baseSpeed * 1.6; // Horizontal movement
+      return this.baseSpeed * 1.6;
     } else if (this.isLightAttacking) {
       return this.baseSpeed * 0.6;
     } else {
@@ -225,19 +201,14 @@ export class Square {
   startLethalCharge(players, chargingEffects) {
     this.isChargingLethal = true;
     this.lethalChargeStartTime = millis();
-    this.canMove = false; // Can't move while charging
-    
-    // Set initial aim direction toward enemy
+    this.canMove = false;
     let targetPlayer = players[this.entityType];
     this.aimDirection = atan2(targetPlayer.y - this.y, targetPlayer.x - this.x);
-    
-    // Create charging effect
     this.chargingEffect = new ChargingEffect(this.x, this.y, this.col, this.me, players);
     chargingEffects.push(this.chargingEffect);
   }
 
   fireLethalShot(laserBeams, screenShake, players, deathParticles, p0Bullets, p1Bullets, game) {
-    // Create devastating laser beam
     let laserBeam = new LaserBeam(
       this.x, this.y, 
       this.aimDirection, 
@@ -251,47 +222,35 @@ export class Square {
       game
     );
     laserBeams.push(laserBeam);
-    
-    // Add knockback to the firing player (opposite direction of shot)
-    let knockbackDistance = 35; // Increased for more dramatic effect
-    let knockbackAngle = this.aimDirection + PI; // Opposite direction of shot
+    let knockbackDistance = 35;
+    let knockbackAngle = this.aimDirection + PI;
     let knockbackX = Math.cos(knockbackAngle) * knockbackDistance;
     let knockbackY = Math.sin(knockbackAngle) * knockbackDistance;
-    
-    // Apply immediate knockback to position
     this.x += knockbackX;
     this.y += knockbackY;
-    
-    // Ensure player stays within bounds after knockback
     this.x = constrain(this.x, this.size / 2, width - this.size / 2);
     this.y = constrain(this.y, this.size / 2, height - this.size / 2);
-    
-    // Add visual knockback effect (brief color change)
     let originalColor = this.col;
     this.col = lerpColor(originalColor, color(255, 255, 255), 0.7);
     setTimeout(() => {
       this.col = originalColor;
     }, 200);
-    
-    // Screen shake
     screenShake.intensity = 15;
     screenShake.duration = 500;
     screenShake.timer = 0;
-    
     this.releaseCharge();
   }
 
-  aiMove(players, p1Bullets, p0Bullets, chargingEffects) {
-    let eT = this.entityType; // entityType = 1 for AI (targets player 1)
+  aiMove(players, p1Bullets, p0Bullets, chargingEffects, reactionTimeScale) {
+    console.log(reactionTimeScale)
+    let eT = this.entityType;
     let targetPlayer = players[eT];
-    
-    // Stop AI if player's location is undefined (player is dead)
     if (typeof targetPlayer.x === 'undefined' || typeof targetPlayer.y === 'undefined') {
       if (players[0].aiState) {
         players[0].aiState.movementDir.set(0, 0);
         players[0].setDirection(0, 0);
       }
-      return; // Skip all actions
+      return;
     }
 
     let distanceToPlayer = dist(players[0].x, players[0].y, targetPlayer.x, targetPlayer.y);
@@ -324,7 +283,7 @@ export class Square {
     for (let effect of chargingEffects) {
       if (effect.playerIndex === eT) {
         let timeToFire = players[eT].lethalChargeTime - (millis() - players[eT].lethalChargeStartTime);
-        if (timeToFire < 300 && !players[0].isCharging && !players[0].isChargingLethal && !players[0].isStunned) {
+        if (timeToFire < 300 * reactionTimeScale && !players[0].isCharging && !players[0].isChargingLethal && !players[0].isStunned) {
           isDodgingLethal = true;
           let aimDir = players[eT].aimDirection;
           let perpendicularDir = createVector(-sin(aimDir), cos(aimDir)).normalize();
@@ -332,7 +291,7 @@ export class Square {
           state.movementDir.lerp(perpendicularDir, 0.2);
           setTimeout(() => {
             state.movementDir.lerp(createVector(0, 0), 0.2);
-          }, random(150, 250));
+          }, random(150, 250) * reactionTimeScale);
         }
       }
     }
@@ -371,7 +330,7 @@ export class Square {
           }
           setTimeout(() => {
             state.movementDir.lerp(createVector(0, 0), 0.2);
-          }, random(110, 150));
+          }, random(110, 150) * reactionTimeScale);
           enemyBullet.dodged = true;
           break;
         }
@@ -379,8 +338,11 @@ export class Square {
     }
     players[0].dodging = isDodgingBullet || isDodgingLethal;
 
+    this.baseSpeed = map(distanceToPlayer, 100, 400, 5.5, 3.5, true);
+    this.speed = this.baseSpeed;
+
     if ((targetPlayer.isStunned || state.stationaryTime > 1500) && !players[0].isCharging && !players[0].isChargingLethal && !players[0].dodging && !players[0].isStunned) {
-      players[0].startLethalCharge(players, chargingEffects);
+        players[0].startLethalCharge(players, chargingEffects);
     }
 
     if (players[0].isChargingLethal && !players[0].isStunned) {
@@ -406,33 +368,30 @@ export class Square {
             players[0].startLethalCharge(players, chargingEffects);
           }
         }
-      }, random(1000, 2000));
+      }, random(1000, 2000) * reactionTimeScale);
     }
 
     if (!players[0].dodging && !players[0].isCharging && !players[0].isChargingLethal && !players[0].isStunned && !state.isBaiting) {
-      let preferredDistance = 200; // Ideal distance
-      let tolerance = 50; // Acceptable range
+      let preferredDistance = 200;
+      let tolerance = 50;
       let angleToPlayer = atan2(targetPlayer.y - players[0].y, targetPlayer.x - players[0].x);
       let moveDir;
       
       if (distanceToPlayer < preferredDistance - tolerance) {
-        // Too close: retreat with slight randomness
         moveDir = createVector(-cos(angleToPlayer), -sin(angleToPlayer)).rotate(random(-PI/6, PI/6));
       } else if (distanceToPlayer > preferredDistance + tolerance) {
-        // Too far: approach with slight circling
         moveDir = createVector(cos(angleToPlayer), sin(angleToPlayer)).rotate(random(-PI/4, PI/4));
       } else {
-        // Ideal distance: circle randomly with occasional pause
         moveDir = createVector(cos(angleToPlayer), sin(angleToPlayer)).rotate(PI/2 * (random() > 0.5 ? 1 : -1));
         if (random() < 0.03) {
-          moveDir.set(0, 0); // Brief pause for flow
+          moveDir.set(0, 0);
           setTimeout(() => {
             state.movementDir.lerp(createVector(cos(angleToPlayer + PI/2), sin(angleToPlayer + PI/2)), 0.15);
           }, random(300, 600));
         }
       }
       
-      state.movementDir.lerp(moveDir, 0.15); // Smoother transitions
+      state.movementDir.lerp(moveDir, 0.15);
     }
 
     let dodgeDirection = createVector(0, 0);
@@ -441,10 +400,10 @@ export class Square {
     let distanceToLeftWall = players[0].x;
     let distanceToRightWall = width - players[0].x;
     let needsToMove = false;
-    let minDistanceToWall = random(60, 100); // Increased to avoid corner-trapping
+    let minDistanceToWall = random(60, 100);
     
     if (distanceToTopWall < minDistanceToWall) {
-      dodgeDirection.add(0, 0.5); // Reduced influence
+      dodgeDirection.add(0, 0.5);
       needsToMove = true;
     }
     if (distanceToBottomWall < minDistanceToWall) {
@@ -466,16 +425,13 @@ export class Square {
       state.movementDir.lerp(dodgeDirection, 0.1);
       setTimeout(() => {
         state.movementDir.lerp(createVector(0, 0), 0.1);
-      }, minDistanceToWall + 30);
+      }, (minDistanceToWall + 30) * reactionTimeScale);
     }
-
-    players[0].baseSpeed = map(distanceToPlayer, 100, 400, 5.5, 3.5, true);
-    players[0].speed = players[0].baseSpeed;
 
     players[0].setDirection(state.movementDir.x, state.movementDir.y);
 
     if (!players[0].dodging && !players[0].isCharging && !players[0].isChargingLethal && !players[0].isStunned) {
-      if (state.isBursting && state.burstCount > 0 && millis() - state.lastBurstShot > 150) {
+      if (state.isBursting && state.burstCount > 0 && millis() - state.lastBurstShot > 150 * reactionTimeScale) {
         console.log("Light Attack 4");
         players[1].lightAttack(players, p1Bullets, p0Bullets);
         players[1].lastAttackTime = millis();
